@@ -1,0 +1,11 @@
+case $1 in
+    -j|--js)
+        ../clojurescript/bin/cljsc src/my/app.cljs
+        ;;
+    -c)
+        clj -A:cljs -c my.app
+        ;;
+    *)
+        rm -rf out && clj -A:cljs -c my.app
+        ;;
+esac

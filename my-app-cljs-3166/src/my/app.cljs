@@ -1,0 +1,7 @@
+;; (ns my.app)
+(letfn [(a [] (def b 1))])
+;; (def ^:dynamic my-atom (atom 0))
+;; (letfn [(c [] (swap! my-atom inc) (println "my-atom" @my-atom))])
+;; (letfn [(d [] (swap! my-atom inc) (println "my-atom" @my-atom))])
+;; (letfn [(e [] (swap! my-atom inc) (println "my-atom" @my-atom))])
+;; (letfn [(f [] (swap! my-atom inc) (println "my-atom" @my-atom))])

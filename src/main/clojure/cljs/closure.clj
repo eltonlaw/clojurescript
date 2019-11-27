@@ -317,8 +317,8 @@
           (VariableMap/load (.getAbsolutePath prop-in))))))
 
   (. compiler-options
-    (setOutputCharset (to-charset (:closure-output-charset opts "UTF-8"))) ;; only works > 20160125 Closure Compiler
-    )
+    (setOutputCharset (to-charset (:closure-output-charset opts "UTF-8")))) ;; only works > 20160125 Closure Compiler
+    
 
   compiler-options)
 
@@ -473,10 +473,10 @@
   (-source
     ([this] (deps/-source this nil))
     ([this opts]
-      (if-let [s (:source this)]
-        s
-        (with-open [reader (io/reader (deps/-url this opts))]
-          (slurp reader))))))
+     (if-let [s (:source this)]
+       s
+       (with-open [reader (io/reader (deps/-url this opts))]
+         (slurp reader))))))
 
 (defrecord JavaScriptFile [foreign ^URL url ^URL source-url provides requires lines source-map]
   deps/IJavaScript
@@ -498,10 +498,10 @@
 
 (defn javascript-file
   ([foreign ^URL url provides requires]
-     (javascript-file foreign url nil provides requires nil nil))
+   (javascript-file foreign url nil provides requires nil nil))
   ([foreign ^URL url source-url provides requires lines source-map]
-    (assert (first provides) (str source-url " does not provide a namespace"))
-    (JavaScriptFile. foreign url source-url (map name provides) (map name requires) lines source-map)))
+   (assert (first provides) (str source-url " does not provide a namespace"))
+   (JavaScriptFile. foreign url source-url (map name provides) (map name requires) lines source-map)))
 
 (defn map->javascript-file [m]
   (merge
@@ -569,9 +569,9 @@
 (defn compile-form-seq
   "Compile a sequence of forms to a JavaScript source string."
   ([forms]
-    (compile-form-seq forms
-      (when env/*compiler*
-        (:options @env/*compiler*))))
+   (compile-form-seq forms
+     (when env/*compiler*
+       (:options @env/*compiler*))))
   ([forms opts]
    (comp/with-core-cljs opts
      (fn []
@@ -635,26 +635,27 @@
   returns a JavaScriptFile. In either case the return value satisfies
   IJavaScript."
   [^File file {:keys [output-file] :as opts}]
-    (if output-file
-      (let [out-file (io/file (util/output-directory opts) output-file)]
-        (if (and (aot-cache? opts)
-                 (gitlibs-src? file))
-          (let [cacheable  (ana/cacheable-files file (util/ext file) opts)
-                cache-path (ana/cache-base-path (util/path file) opts)]
-            (if (not (.exists (:output-file cacheable)))
-              (let [ret (compiled-file (comp/compile-file file (:output-file cacheable)
-                                         (assoc opts :output-dir (util/path cache-path))))]
-                (copy-from-cache cache-path cacheable file opts)
-                ret)
-              (do
-                (when-not (.exists out-file)
-                  (copy-from-cache cache-path cacheable file opts))
-                (compiled-file (comp/compile-file file (.toString out-file) opts)))))
-          (compiled-file (comp/compile-file file (.toString out-file) opts))))
-      (let [path (.getPath ^File file)]
-        (binding [ana/*cljs-file* path]
-          (with-open [rdr (io/reader file)]
-            (compile-form-seq (ana/forms-seq* rdr path)))))))
+  ;; (println "...starting cljs.closure/compile-file")
+  (if output-file
+    (let [out-file (io/file (util/output-directory opts) output-file)]
+      (if (and (aot-cache? opts)
+               (gitlibs-src? file))
+        (let [cacheable  (ana/cacheable-files file (util/ext file) opts)
+              cache-path (ana/cache-base-path (util/path file) opts)]
+          (if (not (.exists (:output-file cacheable)))
+            (let [ret (compiled-file (comp/compile-file file (:output-file cacheable)
+                                       (assoc opts :output-dir (util/path cache-path))))]
+              (copy-from-cache cache-path cacheable file opts)
+              ret)
+            (do
+              (when-not (.exists out-file)
+                (copy-from-cache cache-path cacheable file opts))
+              (compiled-file (comp/compile-file file (.toString out-file) opts)))))
+        (compiled-file (comp/compile-file file (.toString out-file) opts))))
+    (let [path (.getPath ^File file)]
+      (binding [ana/*cljs-file* path]
+        (with-open [rdr (io/reader file)]
+          (compile-form-seq (ana/forms-seq* rdr path)))))))
 
 (defn compile-dir
   "Recursively compile all cljs files under the given source
@@ -673,9 +674,9 @@
 (defn jar-file-to-disk
   "Copy a file contained within a jar to disk. Return the created file."
   ([url out-dir]
-    (jar-file-to-disk url out-dir
-      (when env/*compiler*
-        (:options @env/*compiler*))))
+   (jar-file-to-disk url out-dir
+     (when env/*compiler*
+       (:options @env/*compiler*))))
   ([url out-dir opts]
    (let [out-file (io/file out-dir (path-from-jarfile url))
          content  (with-open [reader (io/reader url)]
@@ -765,11 +766,12 @@
   (-compile [this opts]
     (doall (map (comp #(-compile % opts) util/ns->source) this)))
   (-find-sources [this opts]
-    (into [] (mapcat #(-find-sources % opts)) this))
-  )
+    (into [] (mapcat #(-find-sources % opts)) this)))
+  
 
 (comment
   ;; compile a file in memory
+  (cljs.closure/-compile "/home/d0nkrs/dev/clojurescript/my-app-cljs-3166/src/my/app.cljs" {})
   (-compile "samples/hello/src/hello/core.cljs" {})
   (-find-sources "samples/hello/src/hello/core.cljs" {})
   ;; compile a file to disk - see file @ 'out/clojure/set.js'
@@ -788,8 +790,8 @@
               (defn plus-one [x] (inc x))]
             {})
 
-  (-find-sources 'cljs.core {})
-  )
+  (-find-sources 'cljs.core {}))
+  
 
 (defn js-dependencies
   "Given a sequence of Closure namespace strings, return the list of
@@ -816,8 +818,8 @@
   ;; find dependencies
   (js-dependencies {} ["goog.array"])
   ;; find dependencies in an external library
-  (js-dependencies {:libs ["closure/library/third_party/closure"]} ["goog.dom.query"])
-  )
+  (js-dependencies {:libs ["closure/library/third_party/closure"]} ["goog.dom.query"]))
+  
 
 (defn add-core-macros-if-cljs-js
   "If a compiled entity is the cljs.js namespace, explicitly
@@ -869,7 +871,7 @@
             (if-let [js-res (io/resource relpath)]
               {:relative-path relpath :uri js-res :ext :js}
               (let [ijs (get-in @compiler-env [:js-dependency-index (str ns)])
-                   relpath (or (:file ijs) (:url ijs))]
+                    relpath (or (:file ijs) (:url ijs))]
                (if-let [js-res (and relpath
                                  ;; try to parse URL, otherwise just return local
                                  ;; resource
@@ -917,8 +919,8 @@
   ;; get transitive deps
   (cljs-dependencies {} ["clojure.string"])
   ;; don't get cljs.core twice
-  (cljs-dependencies {} ["cljs.core" "clojure.string"])
-  )
+  (cljs-dependencies {} ["cljs.core" "clojure.string"]))
+  
 
 (defn find-cljs-dependencies
   "Given set of cljs namespace symbols, find IJavaScript objects for the namespaces."
@@ -990,8 +992,8 @@
   ;; get transitive deps
   (find-cljs-dependencies ["clojure.string"])
   ;; don't get cljs.core twice
-  (find-cljs-dependencies ["cljs.core" "clojure.string"])
-  )
+  (find-cljs-dependencies ["cljs.core" "clojure.string"]))
+  
 
 (defn- module-entries
   "Return the module entries of `compile-opts` as a set."
@@ -1216,8 +1218,8 @@
      :landing
      {:output-to "out/modules/reader.js"
       :entries '#{cljs.reader}
-      :depends-on #{:core}}})
-  )
+      :depends-on #{:core}}}))
+  
 
 (defn- const-expr-form
   "Returns the :const-expr form for `sym` from `compiler-state`."
@@ -1342,8 +1344,8 @@
                             {:output-to  "out/modules/reader.js"
                              :entries    '#{cljs.reader}
                              :depends-on #{:core}}}})]
-    modules)
-  )
+    modules))
+  
 
 (defn emit-optimized-source-map
   "Given a JSON parsed Google Closure JavaScript to JavaScript source map,
@@ -1521,8 +1523,8 @@
   ;; => "alert(5);"
 
   ;; optimize a ClojureScript form
-  (optimize {:optimizations :simple} (-compile '(def x 3) {}))
-  )
+  (optimize {:optimizations :simple} (-compile '(def x 3) {})))
+  
 
 ;; Output
 ;; ======
@@ -1596,8 +1598,8 @@
 (comment
   (path-relative-to (io/file "out/goog/base.js") {:url (deps/to-url "out/cljs/core.js")})
   (add-dep-string {} {:url (deps/to-url "out/cljs/core.js") :requires ["goog.string"] :provides ["cljs.core"]})
-  (deps-file {} [{:url (deps/to-url "out/cljs/core.js") :requires ["goog.string"] :provides ["cljs.core"]}])
-  )
+  (deps-file {} [{:url (deps/to-url "out/cljs/core.js") :requires ["goog.string"] :provides ["cljs.core"]}]))
+  
 
 (defn elide-strict [js {:keys [elide-strict] :as opts}]
   (cond-> js
@@ -1641,7 +1643,7 @@
 
 (defn preloads
   ([syms]
-    (preloads syms nil))
+   (preloads syms nil))
   ([syms mode]
    (letfn [(preload-str [sym]
              (str (when (= :browser mode) "document.write('<script>")
@@ -1727,26 +1729,26 @@
                 (when-let [main (:main opts)]
                   [main]))))))
 
-       (output-one-file
-        (merge opts
-          (when module
-            {:output-to (:output-to module)}))
-        (str (when (or (not module) (= :cljs-base (:module-name opts)))
-               (str "var CLOSURE_UNCOMPILED_DEFINES = " closure-defines ";\n"
-                    "var CLOSURE_NO_DEPS = true;\n"
-                    "if(typeof goog == \"undefined\") document.write('<script src=\"" asset-path "/goog/base.js\"></script>');\n"
-                    "document.write('<script src=\"" asset-path "/goog/deps.js\"></script>');\n"
-                    "document.write('<script src=\"" asset-path "/cljs_deps.js\"></script>');\n"
-                    "document.write('<script>if (typeof goog == \"undefined\") console.warn(\"ClojureScript could not load :main, did you forget to specify :asset-path?\");</script>');\n"
-                 (apply str (preloads (:preloads opts) :browser))))
-          (apply str
-            (map (fn [entry]
-                   (when-not (= "goog" entry)
-                     (str "document.write('<script>goog.require(\"" (comp/munge entry) "\");</script>');\n")))
-              (if-let [entries (when module (:entries module))]
-                entries
-                (when-let [main (:main opts)]
-                  [main])))))))))
+      (output-one-file
+       (merge opts
+         (when module
+           {:output-to (:output-to module)}))
+       (str (when (or (not module) (= :cljs-base (:module-name opts)))
+              (str "var CLOSURE_UNCOMPILED_DEFINES = " closure-defines ";\n"
+                   "var CLOSURE_NO_DEPS = true;\n"
+                   "if(typeof goog == \"undefined\") document.write('<script src=\"" asset-path "/goog/base.js\"></script>');\n"
+                   "document.write('<script src=\"" asset-path "/goog/deps.js\"></script>');\n"
+                   "document.write('<script src=\"" asset-path "/cljs_deps.js\"></script>');\n"
+                   "document.write('<script>if (typeof goog == \"undefined\") console.warn(\"ClojureScript could not load :main, did you forget to specify :asset-path?\");</script>');\n"
+                (apply str (preloads (:preloads opts) :browser))))
+         (apply str
+           (map (fn [entry]
+                  (when-not (= "goog" entry)
+                    (str "document.write('<script>goog.require(\"" (comp/munge entry) "\");</script>');\n")))
+             (if-let [entries (when module (:entries module))]
+               entries
+               (when-let [main (:main opts)]
+                 [main])))))))))
 
 (defn fingerprinted-modules [modules fingerprint-info]
   (into {}
@@ -2091,8 +2093,8 @@
                    :source (with-open [reader (io/reader (io/resource "goog/base.js"))]
                              (slurp reader))})
   ;; doesn't write a file that is already on disk
-  (source-on-disk {} {:url (io/resource "cljs/core.cljs")})
-  )
+  (source-on-disk {} {:url (io/resource "cljs/core.cljs")}))
+  
 
 (defn output-unoptimized
   "Ensure that all JavaScript source files are on disk (not in jars),
@@ -2923,151 +2925,151 @@
   ([opts]
    (build nil opts))
   ([source opts]
-    (build source opts
-      (if-not (nil? env/*compiler*)
-        env/*compiler*
-        (env/default-compiler-env
-          ;; need to dissoc :foreign-libs since we won't know what overriding
-          ;; foreign libspecs are referring to until after add-implicit-options
-          ;; - David
-          (add-externs-sources (dissoc opts :foreign-libs))))))
+   (build source opts
+     (if-not (nil? env/*compiler*)
+       env/*compiler*
+       (env/default-compiler-env
+         ;; need to dissoc :foreign-libs since we won't know what overriding
+         ;; foreign libspecs are referring to until after add-implicit-options
+         ;; - David
+         (add-externs-sources (dissoc opts :foreign-libs))))))
   ([source opts compiler-env]
-     (env/with-compiler-env compiler-env
-       (let [orig-opts opts
-             opts (add-implicit-options opts)
-             ;; we want to warn about NPM dep conflicts before installing the modules
-             _ (when (:install-deps opts)
-                 (check-npm-deps opts)
-                 (swap! compiler-env update-in [:npm-deps-installed?]
-                        (fn [installed?]
-                          (if-not installed?
-                            (maybe-install-node-deps! opts)
-                            installed?))))
+   (env/with-compiler-env compiler-env
+     (let [orig-opts opts
+           opts (add-implicit-options opts)
+           ;; we want to warn about NPM dep conflicts before installing the modules
+           _ (when (:install-deps opts)
+               (check-npm-deps opts)
+               (swap! compiler-env update-in [:npm-deps-installed?]
+                      (fn [installed?]
+                        (if-not installed?
+                          (maybe-install-node-deps! opts)
+                          installed?))))
 
-             compiler-stats (:compiler-stats opts)
-             checked-arrays (or (:checked-arrays opts)
-                                ana/*checked-arrays*)
-             static-fns? (or (and (= (:optimizations opts) :advanced)
-                               (not (false? (:static-fns opts))))
-                           (:static-fns opts)
-                           ana/*cljs-static-fns*)
-             sources (when source
-                       (-find-sources source opts))]
-         (validate-opts opts)
-         (swap! compiler-env
-           #(-> %
-             (update-in [:options] merge opts)
-             (assoc :target (:target opts))
-             ;; Save the current js-dependency index once we have computed opts
-             ;; or the analyzer won't be able to find upstream dependencies - Antonio
-             (assoc :js-dependency-index (deps/js-dependency-index opts))
-             ;; Save list of sources for cljs.analyzer/locate-src - Juho Teperi
-             (assoc :sources sources)))
-         (binding [comp/*recompiled* (when-not (false? (:recompile-dependents opts))
-                                       (atom #{}))
-                   ana/*checked-arrays* checked-arrays
-                   ana/parse-ns (memoize ana/parse-ns)
-                   ana/*cljs-static-fns* static-fns?
-                   ana/*fn-invoke-direct* (or (and static-fns?
-                                                   (:fn-invoke-direct opts))
-                                              ana/*fn-invoke-direct*)
-                   *assert* (not= (:elide-asserts opts) true)
-                   ana/*load-tests* (not= (:load-tests opts) false)
-                   ana/*cljs-warnings*
-                   (let [warnings (opts :warnings true)]
-                     (merge
-                       ana/*cljs-warnings*
-                       (if (or (true? warnings)
-                               (false? warnings))
-                         (zipmap
-                           [:unprovided :undeclared-var
-                            :undeclared-ns :undeclared-ns-form]
-                           (repeat warnings))
-                         warnings)))
-                   ana/*verbose* (:verbose opts)]
-           (when (and ana/*verbose* (not (::watch-triggered-build? opts)))
-             (util/debug-prn "Options passed to ClojureScript compiler:" (pr-str opts)))
-           (let [one-file? (and (:main opts)
-                                (#{:advanced :simple :whitespace} (:optimizations opts)))
-                 source (if one-file?
-                          (let [main (:main opts)
-                                uri  (:uri (cljs-source-for-namespace main))]
-                            (assert uri (str "No file for namespace " main " exists"))
-                            uri)
-                          source)
-                 compile-opts (if one-file?
-                                (assoc opts :output-file (:output-to opts))
-                                opts)
-                 _ (load-data-readers! compiler-env)
-                 ;; reset :js-module-index so that ana/parse-ns called by -find-sources
-                 ;; can find the missing JS modules
-                 js-sources (env/with-compiler-env (dissoc @compiler-env :js-module-index)
-                              (-> (if source
-                                    (-find-sources source opts)
-                                    (-find-sources (reduce into #{} (map (comp :entries val) (:modules opts))) opts))
-                                  (add-dependency-sources compile-opts)))
-                 opts       (handle-js-modules opts js-sources compiler-env)
-                 js-sources (-> js-sources
-                                deps/dependency-order
-                                (compile-sources compiler-stats compile-opts)
-                                (#(map add-core-macros-if-cljs-js %))
-                                (add-js-sources opts)
-                                (cond-> (= :nodejs (:target opts))
-                                  (concat
-                                    [(-compile (io/resource "cljs/nodejs.cljs")
-                                       (assoc opts :output-file "nodejs.js"))]))
-                                deps/dependency-order
-                                (add-preloads opts)
-                                remove-goog-base
-                                add-goog-base
-                                (cond-> (= :nodejs (:target opts))
-                                  (concat
-                                    [(-compile (io/resource "cljs/nodejscli.cljs")
-                                       (assoc opts :output-file "nodejscli.js"))]))
-                                (->> (map #(source-on-disk opts %)) doall)
-                                (compile-loader opts))
-                 _ (when (:emit-constants opts)
-                     (comp/emit-constants-table-to-file
-                      (::ana/constant-table @env/*compiler*)
-                      (constants-filename opts)))
-                 _ (when (:infer-externs opts)
-                     (comp/emit-inferred-externs-to-file
-                       (reduce util/map-merge {}
-                         (map (comp :externs second)
-                           (get @compiler-env ::ana/namespaces)))
-                       (str (util/output-directory opts) "/inferred_externs.js")))
-                 _ (spit (io/file (util/output-directory opts) (:opts-cache opts)) (pr-str orig-opts))
-                 optim (:optimizations opts)
-                 ret (if (and optim (not= optim :none))
-                       (do
-                         (when-let [fname (:source-map opts)]
-                           (assert (or (nil? (:output-to opts)) (:modules opts) (string? fname))
-                             (str ":source-map must name a file when using :whitespace, "
-                                  ":simple, or :advanced optimizations with :output-to")))
-                         (if (:modules opts)
+           compiler-stats (:compiler-stats opts)
+           checked-arrays (or (:checked-arrays opts)
+                              ana/*checked-arrays*)
+           static-fns? (or (and (= (:optimizations opts) :advanced)
+                             (not (false? (:static-fns opts))))
+                         (:static-fns opts)
+                         ana/*cljs-static-fns*)
+           sources (when source
+                     (-find-sources source opts))]
+       (validate-opts opts)
+       (swap! compiler-env
+         #(-> %
+           (update-in [:options] merge opts)
+           (assoc :target (:target opts))
+           ;; Save the current js-dependency index once we have computed opts
+           ;; or the analyzer won't be able to find upstream dependencies - Antonio
+           (assoc :js-dependency-index (deps/js-dependency-index opts))
+           ;; Save list of sources for cljs.analyzer/locate-src - Juho Teperi
+           (assoc :sources sources)))
+       (binding [comp/*recompiled* (when-not (false? (:recompile-dependents opts))
+                                     (atom #{}))
+                 ana/*checked-arrays* checked-arrays
+                 ana/parse-ns (memoize ana/parse-ns)
+                 ana/*cljs-static-fns* static-fns?
+                 ana/*fn-invoke-direct* (or (and static-fns?
+                                                 (:fn-invoke-direct opts))
+                                            ana/*fn-invoke-direct*)
+                 *assert* (not= (:elide-asserts opts) true)
+                 ana/*load-tests* (not= (:load-tests opts) false)
+                 ana/*cljs-warnings*
+                 (let [warnings (opts :warnings true)]
+                   (merge
+                     ana/*cljs-warnings*
+                     (if (or (true? warnings)
+                             (false? warnings))
+                       (zipmap
+                         [:unprovided :undeclared-var
+                          :undeclared-ns :undeclared-ns-form]
+                         (repeat warnings))
+                       warnings)))
+                 ana/*verbose* (:verbose opts)]
+         (when (and ana/*verbose* (not (::watch-triggered-build? opts)))
+           (util/debug-prn "Options passed to ClojureScript compiler:" (pr-str opts)))
+         (let [one-file? (and (:main opts)
+                              (#{:advanced :simple :whitespace} (:optimizations opts)))
+               source (if one-file?
+                        (let [main (:main opts)
+                              uri  (:uri (cljs-source-for-namespace main))]
+                          (assert uri (str "No file for namespace " main " exists"))
+                          uri)
+                        source)
+               compile-opts (if one-file?
+                              (assoc opts :output-file (:output-to opts))
+                              opts)
+               _ (load-data-readers! compiler-env)
+               ;; reset :js-module-index so that ana/parse-ns called by -find-sources
+               ;; can find the missing JS modules
+               js-sources (env/with-compiler-env (dissoc @compiler-env :js-module-index)
+                            (-> (if source
+                                  (-find-sources source opts)
+                                  (-find-sources (reduce into #{} (map (comp :entries val) (:modules opts))) opts))
+                                (add-dependency-sources compile-opts)))
+               opts       (handle-js-modules opts js-sources compiler-env)
+               js-sources (-> js-sources
+                              deps/dependency-order
+                              (compile-sources compiler-stats compile-opts)
+                              (#(map add-core-macros-if-cljs-js %))
+                              (add-js-sources opts)
+                              (cond-> (= :nodejs (:target opts))
+                                (concat
+                                  [(-compile (io/resource "cljs/nodejs.cljs")
+                                     (assoc opts :output-file "nodejs.js"))]))
+                              deps/dependency-order
+                              (add-preloads opts)
+                              remove-goog-base
+                              add-goog-base
+                              (cond-> (= :nodejs (:target opts))
+                                (concat
+                                  [(-compile (io/resource "cljs/nodejscli.cljs")
+                                     (assoc opts :output-file "nodejscli.js"))]))
+                              (->> (map #(source-on-disk opts %)) doall)
+                              (compile-loader opts))
+               _ (when (:emit-constants opts)
+                   (comp/emit-constants-table-to-file
+                    (::ana/constant-table @env/*compiler*)
+                    (constants-filename opts)))
+               _ (when (:infer-externs opts)
+                   (comp/emit-inferred-externs-to-file
+                     (reduce util/map-merge {}
+                       (map (comp :externs second)
+                         (get @compiler-env ::ana/namespaces)))
+                     (str (util/output-directory opts) "/inferred_externs.js")))
+               _ (spit (io/file (util/output-directory opts) (:opts-cache opts)) (pr-str orig-opts))
+               optim (:optimizations opts)
+               ret (if (and optim (not= optim :none))
+                     (do
+                       (when-let [fname (:source-map opts)]
+                         (assert (or (nil? (:output-to opts)) (:modules opts) (string? fname))
+                           (str ":source-map must name a file when using :whitespace, "
+                                ":simple, or :advanced optimizations with :output-to")))
+                       (if (:modules opts)
+                         (->>
+                           (util/measure compiler-stats
+                             (str "Optimizing " (count js-sources) " sources")
+                             (apply optimize-modules opts js-sources))
+                           (output-modules opts js-sources))
+                         (let [fdeps-str (foreign-deps-str opts
+                                           (filter foreign-source? js-sources))
+                               opts      (assoc opts
+                                           :foreign-deps-line-count
+                                           (- (count (.split #"\r?\n" fdeps-str -1)) 1))]
                            (->>
                              (util/measure compiler-stats
                                (str "Optimizing " (count js-sources) " sources")
-                               (apply optimize-modules opts js-sources))
-                             (output-modules opts js-sources))
-                           (let [fdeps-str (foreign-deps-str opts
-                                             (filter foreign-source? js-sources))
-                                 opts      (assoc opts
-                                             :foreign-deps-line-count
-                                             (- (count (.split #"\r?\n" fdeps-str -1)) 1))]
-                             (->>
-                               (util/measure compiler-stats
-                                 (str "Optimizing " (count js-sources) " sources")
-                                 (apply optimize opts
-                                   (remove foreign-source? js-sources)))
-                               (add-wrapper opts)
-                               (add-source-map-link opts)
-                               (str fdeps-str)
-                               (add-header opts)
-                               (output-one-file opts)))))
-                       (apply output-unoptimized opts js-sources))]
-             (output-bootstrap opts)
-             ret))))))
+                               (apply optimize opts
+                                 (remove foreign-source? js-sources)))
+                             (add-wrapper opts)
+                             (add-source-map-link opts)
+                             (str fdeps-str)
+                             (add-header opts)
+                             (output-one-file opts)))))
+                     (apply output-unoptimized opts js-sources))]
+           (output-bootstrap opts)
+           ret))))))
 
 (comment
   ;; testing modules
@@ -3083,8 +3085,8 @@
   (require '[cljs.externs :as externs])
 
   (externs/parse-externs
-    (js-source-file "cljs/externs.js" (io/file "src/main/cljs/cljs/externs.js")))
-  )
+    (js-source-file "cljs/externs.js" (io/file "src/main/cljs/cljs/externs.js"))))
+  
 
 (defn ^File target-file-for-cljs-ns
   [ns-sym output-dir]
@@ -3118,94 +3120,94 @@
                        be a function value or a namespaced symbol, loaded as
                        with :watch-fn."
   ([source opts]
-    (watch source opts
-      (if-not (nil? env/*compiler*)
-        env/*compiler*
-        (env/default-compiler-env opts))))
+   (watch source opts
+     (if-not (nil? env/*compiler*)
+       env/*compiler*
+       (env/default-compiler-env opts))))
   ([source opts compiler-env]
-    (watch source opts compiler-env nil))
+   (watch source opts compiler-env nil))
   ([source opts compiler-env quit]
-    (let [opts  (cond-> opts
-                  (= (:verbose opts :not-found) :not-found)
-                  (assoc :verbose true))
-          paths (map #(Paths/get (.toURI %)) (-paths source))
-          path  (first paths)
-          fs    (.getFileSystem path)
-          srvc  (.newWatchService fs)]
-      (letfn [(buildf []
-                (try
-                  (let [start (System/nanoTime)
-                        watch-opts (assoc opts ::watch-triggered-build? true)]
-                    (build source watch-opts compiler-env)
-                    (println "... done. Elapsed"
-                      (/ (unchecked-subtract (System/nanoTime) start) 1e9) "seconds")
-                    (flush))
-                  (when-let [f (opts-fn :watch-fn opts)]
-                    (f))
-                  (catch Throwable e
-                    (if-let [f (opts-fn :watch-error-fn opts)]
-                      (f e)
-                      (binding [*out* *err*]
-                        (println (Throwables/getStackTraceAsString e)))))))
-              (watch-all [^Path root]
-                (Files/walkFileTree root
-                  (reify
-                    FileVisitor
-                    (preVisitDirectory [_ dir _]
-                      (let [^Path dir dir]
-                        (. dir
-                          (register srvc
-                            (into-array [StandardWatchEventKinds/ENTRY_CREATE
-                                         StandardWatchEventKinds/ENTRY_DELETE
-                                         StandardWatchEventKinds/ENTRY_MODIFY])
-                            (into-array [SensitivityWatchEventModifier/HIGH]))))
-                      FileVisitResult/CONTINUE)
-                    (postVisitDirectory [_ dir exc]
-                      FileVisitResult/CONTINUE)
-                    (visitFile [_ file attrs]
-                      FileVisitResult/CONTINUE)
-                    (visitFileFailed [_ file exc]
-                      FileVisitResult/CONTINUE))))]
-        (println "Building ...")
-        (flush)
-        (buildf)
-        (println "Watching paths:" (apply str (interpose ", " paths)))
-        (doseq [path paths]
-          (watch-all path))
-        (loop [key nil]
-          (when (and (or (nil? quit) (not @quit))
-                     (or (nil? key) (. ^WatchKey key reset)))
-            (let [key (. srvc (poll 300 TimeUnit/MILLISECONDS))
-                  poll-events-seq (when key (seq (.pollEvents key)))]
-              (when (and key
-                         (some
-                           (fn [^WatchEvent e]
-                             (let [fstr (.. e context toString)]
-                               (and (or (. fstr (endsWith "cljc"))
-                                        (. fstr (endsWith "cljs"))
-                                        (. fstr (endsWith "clj"))
-                                        (. fstr (endsWith "js")))
-                                    (not (. fstr (startsWith ".#"))))))
-                           poll-events-seq))
-                (when-let [clj-files (seq (keep (fn [^WatchEvent e]
-                                                  (let [ctx (.context e)
-                                                        fstr (.toString ctx)]
-                                                    (when (and (or (. fstr (endsWith "cljc"))
-                                                                   (. fstr (endsWith "clj")))
-                                                               (not (. fstr (startsWith ".#"))))
-                                                      ctx)))
-                                            poll-events-seq))]
-                  (let [^Path dir (.watchable key)
-                        file-seq (map #(.toFile (.resolve dir %)) clj-files)
-                        nses (map (comp :ns ana/parse-ns) file-seq)]
-                    (doseq [ns nses]
-                      (require ns :reload))
-                    (doseq [ns (cljs-dependents-for-macro-namespaces compiler-env nses)]
-                      (mark-cljs-ns-for-recompile! ns (:output-dir opts)))))
-                (println "Change detected, recompiling ...")
-                (flush)
-                (buildf))
-              (recur key))))))))
+   (let [opts  (cond-> opts
+                 (= (:verbose opts :not-found) :not-found)
+                 (assoc :verbose true))
+         paths (map #(Paths/get (.toURI %)) (-paths source))
+         path  (first paths)
+         fs    (.getFileSystem path)
+         srvc  (.newWatchService fs)]
+     (letfn [(buildf []
+               (try
+                 (let [start (System/nanoTime)
+                       watch-opts (assoc opts ::watch-triggered-build? true)]
+                   (build source watch-opts compiler-env)
+                   (println "... done. Elapsed"
+                     (/ (unchecked-subtract (System/nanoTime) start) 1e9) "seconds")
+                   (flush))
+                 (when-let [f (opts-fn :watch-fn opts)]
+                   (f))
+                 (catch Throwable e
+                   (if-let [f (opts-fn :watch-error-fn opts)]
+                     (f e)
+                     (binding [*out* *err*]
+                       (println (Throwables/getStackTraceAsString e)))))))
+             (watch-all [^Path root]
+               (Files/walkFileTree root
+                 (reify
+                   FileVisitor
+                   (preVisitDirectory [_ dir _]
+                     (let [^Path dir dir]
+                       (. dir
+                         (register srvc
+                           (into-array [StandardWatchEventKinds/ENTRY_CREATE
+                                        StandardWatchEventKinds/ENTRY_DELETE
+                                        StandardWatchEventKinds/ENTRY_MODIFY])
+                           (into-array [SensitivityWatchEventModifier/HIGH]))))
+                     FileVisitResult/CONTINUE)
+                   (postVisitDirectory [_ dir exc]
+                     FileVisitResult/CONTINUE)
+                   (visitFile [_ file attrs]
+                     FileVisitResult/CONTINUE)
+                   (visitFileFailed [_ file exc]
+                     FileVisitResult/CONTINUE))))]
+       (println "Building ...")
+       (flush)
+       (buildf)
+       (println "Watching paths:" (apply str (interpose ", " paths)))
+       (doseq [path paths]
+         (watch-all path))
+       (loop [key nil]
+         (when (and (or (nil? quit) (not @quit))
+                    (or (nil? key) (. ^WatchKey key reset)))
+           (let [key (. srvc (poll 300 TimeUnit/MILLISECONDS))
+                 poll-events-seq (when key (seq (.pollEvents key)))]
+             (when (and key
+                        (some
+                          (fn [^WatchEvent e]
+                            (let [fstr (.. e context toString)]
+                              (and (or (. fstr (endsWith "cljc"))
+                                       (. fstr (endsWith "cljs"))
+                                       (. fstr (endsWith "clj"))
+                                       (. fstr (endsWith "js")))
+                                   (not (. fstr (startsWith ".#"))))))
+                          poll-events-seq))
+               (when-let [clj-files (seq (keep (fn [^WatchEvent e]
+                                                 (let [ctx (.context e)
+                                                       fstr (.toString ctx)]
+                                                   (when (and (or (. fstr (endsWith "cljc"))
+                                                                  (. fstr (endsWith "clj")))
+                                                              (not (. fstr (startsWith ".#"))))
+                                                     ctx)))
+                                           poll-events-seq))]
+                 (let [^Path dir (.watchable key)
+                       file-seq (map #(.toFile (.resolve dir %)) clj-files)
+                       nses (map (comp :ns ana/parse-ns) file-seq)]
+                   (doseq [ns nses]
+                     (require ns :reload))
+                   (doseq [ns (cljs-dependents-for-macro-namespaces compiler-env nses)]
+                     (mark-cljs-ns-for-recompile! ns (:output-dir opts)))))
+               (println "Change detected, recompiling ...")
+               (flush)
+               (buildf))
+             (recur key))))))))
 
 (comment
   (watch "samples/hello/src"
@@ -3217,8 +3219,8 @@
      :verbose true
      :watch-fn
      (fn []
-       (println "Success!"))})
-  )
+       (println "Success!"))}))
+  
 
 ;; =============================================================================
 ;; Utilities
@@ -3236,32 +3238,32 @@
      (when env/*compiler*
        (:options @env/*compiler*))))
   ([src opts]
-    (util/to-target-file
-      (when (:output-dir opts)
-        (util/output-directory opts))
-      (ana/parse-ns src))))
+   (util/to-target-file
+     (when (:output-dir opts)
+       (util/output-directory opts))
+     (ana/parse-ns src))))
 
 (defn ^String src-file->goog-require
   ([src] (src-file->goog-require src {:wrap true}))
   ([src {:keys [wrap all-provides macros-ns] :as options}]
-    (let [goog-ns
-          (case (util/ext src)
-            ("cljs" "cljc") (let [ns-str (str (comp/munge (:ns (ana/parse-ns src))))]
-                              (cond-> ns-str
-                                (and macros-ns (not (.endsWith ns-str "$macros")))
-                                (str "$macros")))
-            "js" (cond-> (:provides (parse-js-ns src))
-                   (not all-provides) first)
-            (throw
-              (util/compilation-error (IllegalArgumentException.
-                                        (str "Can't create goog.require expression for " src)))))]
-      (if (and (not all-provides) wrap)
-        (if (:reload options)
-          (str "goog.require(\"" goog-ns "\", true);")
-          (str "goog.require(\"" goog-ns "\");"))
-        (if (vector? goog-ns)
-          goog-ns
-          (str goog-ns))))))
+   (let [goog-ns
+         (case (util/ext src)
+           ("cljs" "cljc") (let [ns-str (str (comp/munge (:ns (ana/parse-ns src))))]
+                             (cond-> ns-str
+                               (and macros-ns (not (.endsWith ns-str "$macros")))
+                               (str "$macros")))
+           "js" (cond-> (:provides (parse-js-ns src))
+                  (not all-provides) first)
+           (throw
+             (util/compilation-error (IllegalArgumentException.
+                                       (str "Can't create goog.require expression for " src)))))]
+     (if (and (not all-provides) wrap)
+       (if (:reload options)
+         (str "goog.require(\"" goog-ns "\", true);")
+         (str "goog.require(\"" goog-ns "\");"))
+       (if (vector? goog-ns)
+         goog-ns
+         (str goog-ns))))))
 
 ;; Browser REPL client stuff
 
@@ -3340,6 +3342,6 @@
   (build '[(ns hello.core)
            (defn ^{:export greet} greet [n] (str "Hola " n))
            (defn ^:export sum [xs] 42)]
-         {:output-dir "samples/hello/out" :output-to "samples/hello/hello.js"})
+         {:output-dir "samples/hello/out" :output-to "samples/hello/hello.js"}))
   ;; open 'samples/hello/hello-dev.html' to see the result in action
-  )
+  

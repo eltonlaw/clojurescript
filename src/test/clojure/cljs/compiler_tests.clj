@@ -355,3 +355,12 @@
                true
                false))))))
   )
+(deftest test-cljs-3166
+  (let [opts {}
+        cenv (env/default-compiler-env)
+        form '(letfn [(a [] (def b 1))])]
+    (is (= [] (capture-warnings
+                  (env/with-compiler-env cenv
+                    (with-out-str
+                      (emit
+                        (analyze aenv form nil opts)))))))))

@@ -1826,6 +1826,8 @@
 
 (defmethod parse 'def
   [op env form _ _]
+  (when @env/*compile-file-flag*
+    (println "--- parse 'def called on" form))
   (when (> (count form) 4)
     (throw (error env "Too many arguments to def")))
   (let [pfn (fn
@@ -1867,6 +1869,9 @@
       (warning :non-dynamic-earmuffed-var env
         {:var (str sym)}))
     (when-some [v (get-in @env/*compiler* [::namespaces ns-name :defs sym])]
+      (when @env/*compile-file-flag*
+        (println "--- v: " (:declared v))
+        (println "--- sym-meta: " (:declared sym-meta)))
       (when (and (not *allow-redef*)
                  (not (:declared v))
                  (not (:declared sym-meta))
@@ -1924,6 +1929,8 @@
         (when *file-defs*
           (swap! *file-defs* conj sym))
 
+        (when @env/*compile-file-flag*
+          (println "--- swapping <" sym "> into" [::namespaces ns-name :defs sym])) ;; @*file-defs*)
         (swap! env/*compiler* assoc-in [::namespaces ns-name :defs sym]
           (merge
             {:name var-name}
@@ -2197,14 +2204,23 @@
   [op env [_ bindings & exprs :as form] name _]
   (when-not (and (vector? bindings) (even? (count bindings)))
     (throw (error env "bindings must be vector of even number of elements")))
-  (let [n->fexpr (into {} (map (juxt first second) (partition 2 bindings)))
+  (let [my-flag (and (= form '(letfn* [a (clojure.core/fn a [] (def b 1))]))
+                     @env/*compile-file-flag*)
+        _ (when my-flag (println "--- my-flag init"))
+        n->fexpr (into {} (map (juxt first second) (partition 2 bindings)))
+        _ (when my-flag (println "--- n->fexpr\n" n->fexpr))
         names    (keys n->fexpr)
+        _ (when my-flag (println "--- names\n" names))
         context  (:context env)
+        _ (when my-flag (println "--- context\n" context))
         ;; first pass to collect information for recursive references
         [meth-env bes]
         (reduce (fn [[{:keys [locals] :as env} bes] n]
                   (let [ret-tag (-> n meta :tag)
+                        _ (when my-flag (println "--- first pass analyzing" (n->fexpr n)))
                         fexpr (no-warn (analyze env (n->fexpr n)))
+                        ;; _ (when my-flag (do (println "--- first pass results")
+                        ;;                     (clojure.pprint/pprint fexpr)))
                         be (cond->
                              {:name n
                               :op :binding
@@ -2221,11 +2237,16 @@
                      (conj bes be)]))
                 [env []] names)
         meth-env (assoc meth-env :context :expr)
+        ;; _ (when my-flag (println "--- meth-env [0]\n" meth-env))
+        ;; _ (when my-flag (println "--- bes [0]\n" bes))
         ;; the real pass
         [meth-env bes]
         (reduce (fn [[meth-env bes] {:keys [name shadow] :as be}]
                   (let [env (assoc-in meth-env [:locals name] shadow)
-                        fexpr (analyze env (n->fexpr name))
+                        _ (when my-flag (println "--- second pass analyzing" (n->fexpr name)))
+                        fexpr (allowing-redef (analyze env (n->fexpr name)))
+                        ;; _ (when my-flag (do (println "--- second pass results")
+                        ;;                     (clojure.pprint/pprint fexpr)))
                         be' (assoc be
                               :init fexpr
                               :variadic? (:variadic? fexpr)
@@ -2234,8 +2255,11 @@
                     [(assoc-in env [:locals name] be')
                      (conj bes be')]))
           [meth-env []] bes)
+        ;; _ (when my-flag (println "--- meth-env [1]\n" meth-env))
+        ;; _ (when my-flag (println "--- bes [1]\n" bes))
         expr (-> (analyze (assoc meth-env :context (if (= :expr context) :return context)) `(do ~@exprs))
                  (assoc :body? true))]
+        ;; _ (when my-flag (println "--- expr\n" expr))]
     {:env env :op :letfn :bindings bes :body expr :form form
      :children [:bindings :body]}))
 
@@ -2347,10 +2371,12 @@
                               (partition 2 bindings)
                               widened-tags))
                        bindings)
+        ;; :w_ (println "ANALYZE-LET - BINDINGS: " bindings
         [bes env]    (-> encl-env
                          (cond->
                            (true? is-loop) (assoc :in-loop true))
                          (analyze-let-bindings bindings op))
+        ;; _ (println "ANALYZE-LET - bes " bes)
         recur-frame  (when (true? is-loop)
                        {:params bes
                         :flag (atom nil)
@@ -3930,6 +3956,8 @@
 (declare analyze-list)
 
 (defn analyze-seq* [op env form name opts]
+  (when @env/*compile-file-flag*
+    (println "---- analyze-seq*, op=" op "special?=" (contains? specials op)))
   (if (contains? specials op)
     (parse op env form name opts)
     (parse-invoke env form)))
@@ -3944,6 +3972,9 @@
      (when env/*compiler*
        (:options @env/*compiler*))))
   ([env form name opts]
+   (when @env/*compile-file-flag*
+     (println "---- analyze-seq called")
+     (println "---- (:quoted? env)" (:quoted? env)))
    (if ^boolean (:quoted? env)
      (analyze-list env form)
      (let [line (-> form meta :line)
@@ -3959,6 +3990,8 @@
          (when (nil? op)
            (throw (error env "Can't call nil")))
          (let [mform (macroexpand-1 env form)]
+           (when @env/*compile-file-flag*
+             (println "---- not macroexpandable?: " (identical? form mform) "mform: " mform))
            (if (identical? form mform)
              (analyze-seq*-wrap op env form name opts)
              (analyze env mform name opts))))))))
@@ -4214,6 +4247,8 @@
      (when env/*compiler*
        (:options @env/*compiler*))))
   ([env form name opts]
+   (when @env/*compile-file-flag*
+     (println "-- analyze, FORM=" form "type:" (type form)))
    (wrapping-errors env
      (if (analyzed? form)
        (no-warn (analyze* env form name opts))
@@ -4687,6 +4722,8 @@
      ([f opts]
       (analyze-file f false opts))
      ([f skip-cache opts]
+      (when @env/*compile-file-flag*
+        (println "ANAYLZE FILE" (type f) f))
       (binding [*file-defs*        (atom #{})
                 *unchecked-if*     false
                 *unchecked-arrays* false
@@ -4712,6 +4749,7 @@
                             reader/*alias-map* (or reader/*alias-map* {})]
                     (when (or *verbose* (:verbose opts))
                       (util/debug-prn "Analyzing" (str res)))
+                    (println "NOT SKIPPED: analyzing")
                     (let [env (assoc (empty-env) :build-options opts)
                           ns  (with-open [rdr (io/reader res)]
                                 (loop [ns nil forms (seq (forms-seq* rdr (util/path res)))]
@@ -4733,6 +4771,7 @@
                       (when (and cache (true? (:cache-analysis opts)))
                         (write-analysis-cache ns cache res))))
                   (try
+                    (println "SKIPPED: read-analysis-cache")
                     (read-analysis-cache cache res opts)
                     (catch Throwable e
                       (analyze-file f true opts))))))))))))

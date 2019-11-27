@@ -1673,6 +1673,10 @@
         (when env/*compiler*
           (:options @env/*compiler*))))
      ([src dest opts]
+      (if (= "app.cljs" (.getName src))
+        (reset! env/*compile-file-flag* true)
+        (reset! env/*compile-file-flag* false))
+      (println "...starting cljs.compiler/compile-file" (.getName src) dest)
       {:post [map?]}
       (binding [ana/*file-defs*        (atom #{})
                 ana/*unchecked-if*     false

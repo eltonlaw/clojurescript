@@ -42,6 +42,8 @@ state that is accessed/maintained by many different components."}
 ;; Note that this var is functionally private to the compiler, and contains
 ;; implementation-dependent data.
 (def ^:dynamic *compiler* nil)
+(def ^:dynamic *compile-file-flag* (atom false))
+
 
 (defn default-compiler-env* [options]
   (merge

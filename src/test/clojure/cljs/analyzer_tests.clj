@@ -60,6 +60,10 @@
 (deftest all-warn
   (is (every? #(= 1 %) (map (fn [[name form]] (ana/all-warn (warn-count form))) warning-forms))))
 
+(deftest test-cljs-3166
+  (let [form '(letfn [(a [] (def b 1))])]
+    (is (zero? (ana/no-warn (warn-count form))))))
+
 ;; =============================================================================
 ;; NS parsing
 
@@ -2121,3 +2125,7 @@
              (:a (->Foo))))))
     (is (= 1 (count @ws)))
     (is (string/starts-with? (first @ws) "Wrong number of args (0) passed to cljs.user/->Foo"))))
+
+(deftest test-cljs-3166
+  (let [form '(letfn [(a [] (def b 1))])]
+    (is (zero? (ana/no-warn (warn-count form))))))
